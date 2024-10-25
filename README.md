@@ -38,15 +38,20 @@ Imbalanced Learn
 ## ⚙️ Instalación de librerias
 -Numpy usa **pip install numpy**
 
--Pandas usa **pip install pandas**
-
--Scikitlearn usa 
-**python -m venv sklearn-env
+-Pandas usa:
+```bash
+pip install pandas
+```
+Scikitlearn usa:
+```bash
+python -m venv sklearn-env
 sklearn-env\Scripts\activate  # activate
-pip install -U scikit-learn**
-
--Imbalanced Learn **pip install imbalanced-learn**
-
+pip install -U scikit-learn
+```
+-Imbalanced Learn 
+```bash
+pip install imbalanced-learn
+```
 💡 Ejemplos
 Entrada: 12345
 
