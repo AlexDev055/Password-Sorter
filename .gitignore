@@ -126,3 +126,5 @@ node_modules/
 venv/
 .vscode/
 sklearn-env/
+.git/
+sorter/.git/objects/
