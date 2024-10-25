@@ -36,8 +36,10 @@ Scikit Leanr
 Imbalanced Learn
 
 ## ⚙️ Instalación de librerias
--Numpy usa **pip install numpy**
-
+-Numpy usa
+```bash
+pip install numpy 
+```
 -Pandas usa:
 ```bash
 pip install pandas
