@@ -27,7 +27,7 @@ Este proyecto implementa un **modelo de aprendizaje automático** para clasifica
 
 1. Clona este repositorio:
    ```bash
-   git clone <URL-del-repositorio>
+   git clone https://github.com/Zaun506/Password-Sorter
    cd <Password-Sorter>
 2. Instala las siguientes librerias
 Pandas
