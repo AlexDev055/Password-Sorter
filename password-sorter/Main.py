@@ -1,47 +1,141 @@
+import pandas as pd
+import numpy as np
 from imblearn.over_sampling import SMOTE
 from sklearn.svm import SVC
-from sklearn.model_selection import train_test_split
+from sklearn.model_selection import train_test_split, cross_val_score
 from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import classification_report, accuracy_score
-import pandas as pd
+from sklearn.pipeline import Pipeline
+from sklearn.model_selection import GridSearchCV
 
-# Cargar los datos
-data = pd.read_csv("base-datos-extendido.csv")
+class PasswordStrengthClassifier:
+    def __init__(self):
+        # Separamos SMOTE del pipeline
+        self.vectorizer = TfidfVectorizer(analyzer='char', ngram_range=(1, 4))
+        self.smote = SMOTE(random_state=42)
+        self.classifier = SVC(kernel='linear', random_state=42)
+        
+        # Pipeline solo para vectorizer y classifier
+        self.pipeline = Pipeline([
+            ('vectorizer', self.vectorizer),
+            ('classifier', self.classifier)
+        ])
+        
+        self.param_grid = {
+            'vectorizer__ngram_range': [(1, 3), (1, 4)],
+            'classifier__C': [0.1, 1, 10],
+            'classifier__kernel': ['linear', 'rbf']
+        }
+        
+    def extract_password_features(self, password):
+        """Extrae características adicionales de las contraseñas."""
+        return {
+            'length': len(password),
+            'has_upper': any(c.isupper() for c in password),
+            'has_lower': any(c.islower() for c in password),
+            'has_digit': any(c.isdigit() for c in password),
+            'has_special': any(not c.isalnum() for c in password),
+            'char_diversity': len(set(password)) / len(password) if password else 0
+        }
+    
+    def fit(self, X, y):
+        # Primero vectorizamos los datos
+        X_transformed = self.vectorizer.fit_transform(X)
+        
+        # Aplicamos SMOTE
+        X_resampled, y_resampled = self.smote.fit_resample(X_transformed, y)
+        
+        # Búsqueda de mejores hiperparámetros
+        grid_search = GridSearchCV(self.classifier, {
+            'C': [0.1, 1, 10],
+            'kernel': ['linear', 'rbf']
+        }, cv=5, scoring='accuracy')
+        
+        grid_search.fit(X_resampled, y_resampled)
+        self.classifier = grid_search.best_estimator_
+        print(f"Mejores parámetros encontrados: {grid_search.best_params_}")
+        return self
+    
+    def predict(self, X):
+        X_transformed = self.vectorizer.transform(X)
+        return self.classifier.predict(X_transformed)
+    
+    def evaluate(self, X_test, y_test):
+        """Evalúa el modelo con métricas detalladas."""
+        X_transformed = self.vectorizer.transform(X_test)
+        y_pred = self.classifier.predict(X_transformed)
+        
+        print("\nMétricas de evaluación:")
+        print(f"Precisión: {accuracy_score(y_test, y_pred):.3f}")
+        print("\nInforme de clasificación detallado:")
+        print(classification_report(y_test, y_pred))
+        
+        # Validación cruzada
+        cv_scores = cross_val_score(self.classifier, X_transformed, y_test, cv=5)
+        print(f"\nPrecisión de validación cruzada: {cv_scores.mean():.3f} (+/- {cv_scores.std() * 2:.3f})")
+    
+    def predict_with_confidence(self, passwords):
+        """Realiza predicciones con nivel de confianza."""
+        predictions = []
+        
+        for password in passwords:
+            # Obtener predicción
+            pred = self.predict([password])[0]
+            
+            # Extraer características adicionales para análisis
+            features = self.extract_password_features(password)
+            
+            # Calcular puntuación de fortaleza basada en características
+            strength_score = sum([
+                features['length'] >= 8,
+                features['has_upper'],
+                features['has_lower'],
+                features['has_digit'],
+                features['has_special'],
+                features['char_diversity'] > 0.5
+            ]) / 6.0
+            
+            predictions.append({
+                'password': password,
+                'prediction': pred,
+                'strength_score': strength_score,
+                'features': features
+            })
+            
+        return predictions
 
-# Separar características y etiquetas
-X = data['password']
-y = data['label']
-
-# Vectorizar las contraseñas con n-gramas
-vectorizer = TfidfVectorizer(analyzer='char', ngram_range=(1, 3))
-X_transformed = vectorizer.fit_transform(X)
-
-# Aplicar SMOTE para balancear las clases
-smote = SMOTE(random_state=42)
-X_resampled, y_resampled = smote.fit_resample(X_transformed, y)
-
-# Dividir los datos en entrenamiento y prueba
-X_train, X_test, y_train, y_test = train_test_split(X_resampled, y_resampled, test_size=0.2, random_state=42)
-
-# Entrenar el modelo con SVM (linear kernel)
-model = SVC(kernel='linear', random_state=42)
-model.fit(X_train, y_train)
-
-# Realizar predicciones
-y_pred = model.predict(X_test)
-
-# Evaluar el modelo
-accuracy = accuracy_score(y_test, y_pred)
-print(f"Precisión del modelo: {accuracy:.2f}")
-
-print("\nInforme de clasificación:")
-print(classification_report(y_test, y_pred))
-
-# Prueba con nuevas contraseñas
-nuevas_contrasenas = ["12345", "7S$k@9Jv", "password123", "U+LMj1@3"]
-nuevas_vectorizadas = vectorizer.transform(nuevas_contrasenas)
-predicciones = model.predict(nuevas_vectorizadas)
-
-print("\nResultados de predicción para nuevas contraseñas:")
-for contraseña, pred in zip(nuevas_contrasenas, predicciones):
-    print(f"{contraseña}: {pred}")
+# Ejemplo de uso
+if __name__ == "__main__":
+    # Cargar datos
+    data = pd.read_csv("base-datos-extendido.csv")
+    X = data['password']
+    y = data['label']
+    
+    # Dividir datos
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    # Entrenar modelo
+    classifier = PasswordStrengthClassifier()
+    classifier.fit(X_train, y_train)
+    
+    # Evaluar modelo
+    classifier.evaluate(X_test, y_test)
+    
+    # Probar nuevas contraseñas
+    test_passwords = [
+        "12345",
+        "7S$k@9JvP2",
+        "password123",
+        "U+LMj1@3#kL"
+    ]
+    
+    results = classifier.predict_with_confidence(test_passwords)
+    
+    print("\nAnálisis de nuevas contraseñas:")
+    for result in results:
+        print(f"\nContraseña: {result['password']}")
+        print(f"Predicción: {'Fuerte' if result['prediction'] == 1 else 'Débil'}")
+        print(f"Puntuación de fortaleza: {result['strength_score']:.2f}")
+        print("Características:")
+        for feature, value in result['features'].items():
+            print(f"- {feature}: {value}")
