@@ -7,7 +7,14 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from sklearn.metrics import classification_report, accuracy_score
 from sklearn.pipeline import Pipeline
 from sklearn.model_selection import GridSearchCV
+import pyfiglet
 
+def mostrar_titulo(titulo):
+    ascii_art = pyfiglet.figlet_format(titulo)
+    print("Password-Sorter")
+
+# Ejemplo de uso
+mostrar_titulo("Mi Programa")
 class PasswordStrengthClassifier:
     def __init__(self):
         # Separamos SMOTE del pipeline
