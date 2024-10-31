@@ -13,16 +13,13 @@ def mostrar_titulo(titulo):
     ascii_art = pyfiglet.figlet_format(titulo)
     print("Password-Sorter")
 
-# Ejemplo de uso
+# Ejemplo
 mostrar_titulo("Mi Programa")
 class PasswordStrengthClassifier:
-    def __init__(self):
-        # Separamos SMOTE del pipeline
+    def __init__(self)
         self.vectorizer = TfidfVectorizer(analyzer='char', ngram_range=(1, 4))
         self.smote = SMOTE(random_state=42)
         self.classifier = SVC(kernel='linear', random_state=42)
-        
-        # Pipeline solo para vectorizer y classifier
         self.pipeline = Pipeline([
             ('vectorizer', self.vectorizer),
             ('classifier', self.classifier)
@@ -46,13 +43,8 @@ class PasswordStrengthClassifier:
         }
     
     def fit(self, X, y):
-        # Primero vectorizamos los datos
         X_transformed = self.vectorizer.fit_transform(X)
-        
-        # Aplicamos SMOTE
         X_resampled, y_resampled = self.smote.fit_resample(X_transformed, y)
-        
-        # Búsqueda de mejores hiperparámetros
         grid_search = GridSearchCV(self.classifier, {
             'C': [0.1, 1, 10],
             'kernel': ['linear', 'rbf']
@@ -76,8 +68,6 @@ class PasswordStrengthClassifier:
         print(f"Precisión: {accuracy_score(y_test, y_pred):.3f}")
         print("\nInforme de clasificación detallado:")
         print(classification_report(y_test, y_pred))
-        
-        # Validación cruzada
         cv_scores = cross_val_score(self.classifier, X_transformed, y_test, cv=5)
         print(f"\nPrecisión de validación cruzada: {cv_scores.mean():.3f} (+/- {cv_scores.std() * 2:.3f})")
     
@@ -86,13 +76,8 @@ class PasswordStrengthClassifier:
         predictions = []
         
         for password in passwords:
-            # Obtener predicción
             pred = self.predict([password])[0]
-            
-            # Extraer características adicionales para análisis
             features = self.extract_password_features(password)
-            
-            # Calcular puntuación de fortaleza basada en características
             strength_score = sum([
                 features['length'] >= 8,
                 features['has_upper'],
@@ -110,25 +95,16 @@ class PasswordStrengthClassifier:
             })
             
         return predictions
-
-# Ejemplo de uso
 if __name__ == "__main__":
-    # Cargar datos
     data = pd.read_csv("base-datos-extendido.csv")
     X = data['password']
     y = data['label']
-    
-    # Dividir datos
     X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
     
-    # Entrenar modelo
+    # Model Training
     classifier = PasswordStrengthClassifier()
     classifier.fit(X_train, y_train)
-    
-    # Evaluar modelo
     classifier.evaluate(X_test, y_test)
-    
-    # Probar nuevas contraseñas
     test_passwords = [
         "12345",
         "7S$k@9JvP2",
